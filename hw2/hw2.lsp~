@@ -1,0 +1,52 @@
+(defun DFS (TREE)
+  (cond ((null TREE) nil)
+	((atom TREE) (cons TREE nil))
+	(t (append (DFS (car TREE)) (DFS (cdr TREE))))
+  )
+)
+
+;;INPUT:Given a list TREE
+;;OUTPUT:return a list consists of all the atom elements in TREE
+(defun getElement (TREE)
+  (cond ((null TREE) nil)
+	((atom (car TREE)) (cons (car TREE) (getElement (cdr TREE))))
+	(t (getElement (cdr TREE)))
+   )
+)
+
+;;INPUT:Given an input TREE
+;;OUTPUT: if it's an atom, return the list of this single atom
+;;if it's a list, return this list
+(defun openList (TREE)
+  (cond ((atom TREE) (cons TREE nil))
+	((listp TREE) TREE)
+   )
+)
+
+;;This is a variant of DFS, which returns the search order
+;;with a given depth
+(defun varDFS (TREE depth)
+  (cond ((null TREE) nil)
+	((<= depth 1) TREE)
+	((atom TREE) (cons TREE nil))
+	(t (varDFS (append (openList (car TREE)) (varDFS (cdr TREE) 2)) (- depth 1)))
+   )
+)
+
+(cancel-debug-on-entry 'varDFS)
+
+(varDFS '((A (B)) C (D)) 0)
+
+(varDFS '(A (B C) (D) (E (F G))) 3)
+
+;;INPUT:Given a tree TREE and the Depth factor depth
+;;OUTPUT:Return the top-level list of the terminal nodes in the
+;;order that they would be visited by a left-to-right depth-first
+;;iterative-deepening search
+(defun DFID (TREE depth)
+  (cond ((< depth 1) nil)
+	(t (append (DFID TREE (- depth 1)) (getElement(varDFS TREE depth))))
+	)
+  )
+
+(DFID '(a (b c) (d) (e (f g))) 2)

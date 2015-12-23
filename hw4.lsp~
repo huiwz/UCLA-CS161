@@ -1,0 +1,268 @@
+;;if x is zero, return t, else, return nil
+(defun is-zero (x)
+  (cond ((equal 0 x) t)
+	(t nil)
+   )
+  )
+
+;;if x is one, return t, else, return nil
+(defun is-one (x)
+  (cond ((equal 1 x) t)
+	(t nil)
+   )
+  )
+
+;;helper function for ini
+;;create a all x list with N elements
+(defun ini-row (N x)
+  (cond ((is-zero N) nil)
+	(t (cons x (ini-row (- N 1) x)))
+   )
+)
+
+;;Initialize a square of N*M and set all members to 0
+(defun ini (N M)
+  (cond ((is-zero M) nil)
+	(t (cons (ini-row N 0) (ini N (- M 1))))
+   )
+  )
+
+(ini 5 5)
+
+;;access rth row and cth column's element at state S
+(defun access (S r c)
+  (cond ((or (< r 1) (< c 1)) nil)
+	((and (= r 1) (= c 1)) (car (car S)))
+	((not (= r 1)) (access (cdr S) (- r 1) c))
+	((not (= c 1)) (access (list (cdr (car S))) r (- c 1)))
+   )
+  )
+
+;;helper function for set-square
+;;Given a list and column number c and value v, set cth element to v
+(defun set-column (l c v)
+  (cond ((= c 1) (cons v (cdr l)))
+	(t (cons (car l) (set-column (cdr l) (- c 1) v)))
+   )
+  )
+
+;;set rth row and cth column's element to x at state S
+(defun set-square (S r c x)
+  (cond ((= r 1) (cons (set-column (car S) c x) (cdr S)))
+	(t (cons (car S) (set-square (cdr S) (- r 1) c x)))
+   )
+  )
+
+(cancel-debug-on-entry 'occupy-left-diagonal)
+(occupy-right-diagonal '((1 2 3) (4 5 6) (7 8 9)) 3 4 3)
+
+;;helper function for occupy-row
+(defun occupy-row-helper (l)
+  (cond ((null l) nil)
+	((= (car l) 2) (cons 2 (occupy-row-helper (cdr l))))
+	(t (cons 1 (occupy-row-helper (cdr l))))
+   )
+  )
+
+(occupy-row-helper '(0 0 2 0 0 0))
+
+;;helper function for occupy
+;;Given a row and the size of the board, set all elements in this row to be 1
+(defun occupy-row (S r N)
+  (cond ((= r 1) (cons (occupy-row-helper (car S)) (cdr S)))
+	(t (cons (car S) (occupy-row (cdr S) (- r 1) N)))
+   )
+  )
+
+(occupy-row '((0 0 0) (0 0 0) (0 2 0)) 1 3)
+
+(cancel-debug-on-entry 'occupy-column)
+(occupy-column (ini 5 5) 5)
+
+;;helper function for occupy-column
+(defun occupy-column-helper (l c)
+  (cond ((and (= c 1) (not (= (car l) 2))) (cons 1 (cdr l)))
+	((and (= c 1) (= (car l) 2)) (cons 2 (cdr l)))
+	(t (cons (car l) (occupy-column-helper (cdr l) (- c 1))))
+   )
+  )
+
+(occupy-right-diagonal '((2 0 0) (0 0 0) (2 2 0)) 1 3 3)
+
+;;helper function for occupy
+;;Given a column and the size of the board, set all elements in this column to be 1
+(defun occupy-column (S c N)
+  (cond ((null (car S)) nil)
+	(t (cons (occupy-column-helper (car S) c) (occupy-column (cdr S) c N)))
+   )
+  )
+
+;;helper function for occupy
+;;Given a number x and N, if x is greater than N or x is smaller than 1
+;;return nil, else return t
+(defun is-valid (x N)
+  (cond ((< x 1) nil)
+	((> x N) nil)
+	(t t)
+   )
+  )
+
+(is-valid 0 5)
+
+;;helper function for occupy
+;;Given a row number and column number, return its lowest valid coordinate
+(defun findbase (r c)
+  (cond ((or (= r 1) (= c 1)) (list r c))
+	(t (findbase (- r 1) (- c 1)))
+   )
+  )
+
+(findbase 2 5)
+
+;;helper function for occupy
+;;Given a two-dimensional coordinate,set all the elements on its left-to-right diagonals to be 1
+(defun occupy-left-diagonal (S r c N)
+  (cond ((and (is-valid r N) (is-valid c N) (not (= (access S r c) 2))) (occupy-left-diagonal (set-square S r c 1) (+ r 1) (+ c 1) N))
+	((and (is-valid r N) (is-valid c N) (= (access S r c) 2)) (occupy-left-diagonal (set-square S r c 2) (+ r 1) (+ c 1) N))
+	(t S)
+   )
+)
+
+;;helper function for occupy
+;;Given a row number r and column number c, return its upper-right valid coordinates
+(defun findright (r c N)
+  (cond ((or (= r 1) (= c N)) (list r c))
+	(t (findright (- r 1) (+ c 1) N))
+   )
+  )
+
+(findright 2 1 3)
+
+;;helper function for occupy
+;;Given a two dimensional coordinate, set all the elements on its right-to-left diagonals to be 1
+(defun occupy-right-diagonal (S r c N)
+  (cond ((and (is-valid r N) (is-valid c N) (not (= (access S r c) 2))) (occupy-right-diagonal (set-square S r c 1) (+ r 1) (- c 1) N))
+	((and (is-valid r N) (is-valid c N) (= (access S r c) 2)) (occupy-right-diagonal (set-square S r c 2) (+ r 1) (- c 1) N))
+	(t S)
+   )
+)
+
+;;given a coordinate, set all its row, column and diagonals to 1
+(defun occupy (S r c N)
+  (let* (
+	 (base (findbase r c))
+	 (right (findright r c N))
+	 (br (car base))
+	 (bc (car (cdr base)))
+	 (rr (car right))
+	 (rc (car (cdr right)))
+	 )
+    (cond ((or (not (is-valid br N)) (not (is-valid bc N)) (not (is-valid rr N)) (not (is-valid rc N))) S)
+	  (t (occupy-right-diagonal (occupy-left-diagonal (occupy-column (occupy-row (set-square S r c 2) r N) c N) br bc N) rr rc N))
+     )
+   )
+  )
+
+(cancel-debug-on-entry 'occupy)
+(is-all-one (get-row '((0 0 0) (1 1 1) (0 0 0)) 2))
+
+;;Given a state S and a row, if all the elements in this row is 1, return t. Otherwise, return 0
+(defun no-zero (l)
+  (cond ((null l) t)
+	(t (and (not (= (car l) 0)) (no-zero (cdr l))))
+   )
+  )
+
+(no-zero '(1 2 1))
+
+;;Given a state S and row number, return this row as a list
+(defun get-row (S r)
+  (cond ((= r 1) (car S))
+	(t (get-row (cdr S) (- r 1)))
+   )
+  )
+
+;;return t if this row has a 2 in it, else return nil
+(defun have-2 (l)
+  (cond ((null l) nil)
+	(t (or (= (car l) 2) (have-2 (cdr l))))
+   )
+  )
+
+;;return the first row number that doesn't a 2 in it
+(defun first-2 (S)
+  (cond ((not (have-2 (car S))) 1)
+	(t (+ 1 (first-2 (cdr S))))
+   )
+  )
+
+;;Given a row, return a single coordinate that is 2
+(defun get-2 (l)
+  (cond ((= (car l) 2) 1)
+	(t (+ 1 (get-2 (cdr l))))
+   )
+  )
+
+(get-2 '(1 1 2))
+(have-2 '(1 1 1))
+(first-2 '((1 2 1) (1 2 1) (1 2 1)))
+
+;;Given a state S and row number, return all possible next states
+(defun next-state-helper (S r num N)
+  (cond ((> num N) nil)
+	((and (<= num N) (is-zero (access S r num))) (append (list (occupy S r num N)) (next-state-helper S r (+ num 1) N)))
+	(t (next-state-helper S r (+ num 1) N))
+   )
+  )
+
+;;return all possible next states
+(defun next-state (S num N)
+  (next-state-helper S (first-2 S) 1 N)
+  )
+
+(occupy '((2 0 0) (0 0 0) (2 0 0)) 2 1 3)
+(cancel-debug-on-entry 'occupy)
+(next-state '((2 0 0) (0 0 0) (0 0 0)) 1 3)
+
+;;Given a state S and row number, return t if we can add a Queen on that row, else return nil
+(defun valid-state (S r N)
+  (let* (
+	 (row (get-row S r))
+	 )
+    (cond ((> r N) t)
+	  (t (not (no-zero row)))
+	  )
+    )
+   )
+
+(cancel-debug-on-entry 'DFS)
+(get-row '((1 1 0) (1 2 1) (1 1 1)) 2)
+(DFS '(((0 0 0 0) (0 0 0 0) (0 0 0 0) (0 0 0 0))) 4)
+
+;;Apply DFS to search for possible final states, if such states exist, return the first one of them, if not, return nil
+(defun DFS (S N)
+  (cond ((null S) nil)
+	((> (first-2 (car S)) N) (car S))
+	((and (<= (first-2 (car S)) N) (valid-state (car S) (+ (first-2 (car S)) 1) N)) (DFS (append (next-state (car S) 1 N) (cdr S)) N))
+	(t (DFS (cdr S) N))
+   )
+  )
+
+;;interpret a final state to a list of row numbers
+(defun interpret (S N)
+  (cond ((< N 1) nil)
+	(t (cons (get-2 (car S)) (interpret (cdr S) (- N 1))))
+   )
+  )
+
+;;Finally, QUEENS function
+(defun QUEENS (N)
+  (let* (
+	 (S (ini N N))
+	 (result (DFS S N))
+	 )
+    (cond ((null result) nil)
+	  (t (interpret result N))
+     )
+      )
+  )
